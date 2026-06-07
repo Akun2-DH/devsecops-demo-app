@@ -19,7 +19,6 @@ pipeline {
     }
 
     environment {
-        // CORREGIDO: Mapeamos tus 3 credenciales reales exactas de tu captura de pantalla
         ZAP_API_KEY      = credentials('ZAP_API_KEY')
         GITHUB_AUTH      = credentials('GITHUB_TOKEN_API')
         SONAR_TOKEN_ENV  = credentials('SONAR_AUTH_TOKEN') 
@@ -41,7 +40,6 @@ pipeline {
 
         stage('SAST - SonarQube') {
             steps {
-                // Quitamos el wrapper problemático y le pasamos tu token real directamente al scanner
                 echo "Iniciando análisis estático con el token inyectado..."
                 sh """
                     sonar-scanner \
@@ -80,12 +78,10 @@ pipeline {
             script {
                 if (params.ORIGEN_CODIGO != 'LOCAL') {
                     echo '¡Pipeline exitoso! Notificando estatus VERDE a GitHub mediante API...'
-                    def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    
                     sh """
                         curl -X POST -H "Authorization: token ${GITHUB_AUTH}" \
                         -H "Accept: application/vnd.github.v3+json" \
-                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${commitHash} \
+                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${GIT_COMMIT} \
                         -d '{"state": "success", "target_url": "${BUILD_URL}", "description": "¡Análisis estático y dinámico superado con éxito!", "context": "Pipeline DevSecOps (Jenkins)"}'
                     """
                 } else {
@@ -97,12 +93,10 @@ pipeline {
             script {
                 if (params.ORIGEN_CODIGO != 'LOCAL') {
                     echo '¡Pipeline fallido! Notificando estatus ROJO a GitHub mediante API...'
-                    def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    
                     sh """
                         curl -X POST -H "Authorization: token ${GITHUB_AUTH}" \
                         -H "Accept: application/vnd.github.v3+json" \
-                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${commitHash} \
+                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${GIT_COMMIT} \
                         -d '{"state": "failure", "target_url": "${BUILD_URL}", "description": "Fallo de seguridad detectado en el pipeline.", "context": "Pipeline DevSecOps (Jenkins)"}'
                     """
                 } else {
