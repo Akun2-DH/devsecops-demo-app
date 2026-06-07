@@ -4,6 +4,16 @@ const PORT = 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// VULNERABILIDAD HARDCODED CREDENTIALS (SAST lo detectará)
+const AWS_SECRET_KEY = "AKIAIOSFODNN7EXAMPLE/fakekey/secret/XYZ123";
+const database_password = "AdminPassword123!";
+
+// VULNERABILIDAD INYECCIÓN SQL (SAST y DAST lo detectarán)
+app.get('/buscar-usuario', (req, res) => {
+    let id = req.query.id;
+    let query = "SELECT * FROM usuarios WHERE id = " + id; // Pésima práctica: Concatenación directa
+    db.query(query, (err, result) => { res.send(result); });
+});
 
 // Health check
 app.get('/health', (req, res) => {
