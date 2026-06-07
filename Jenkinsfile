@@ -111,7 +111,7 @@ pipeline {
             }
         }
         always {
-            cleanWs(deleteDirs: true, notFailBuild: true, disableDeferredWipeout: true)
+            deleteDir()
             echo "¡Pipeline de DevSecOps finalizado!"
         }
     }
