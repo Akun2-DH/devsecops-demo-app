@@ -81,7 +81,7 @@ pipeline {
                     sh """
                         curl -X POST -H "Authorization: token ${GITHUB_AUTH}" \
                         -H "Accept: application/vnd.github.v3+json" \
-                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${GIT_COMMIT} \
+                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${env.GIT_COMMIT} \
                         -d '{"state": "success", "target_url": "${BUILD_URL}", "description": "¡Análisis estático y dinámico superado con éxito!", "context": "Pipeline DevSecOps (Jenkins)"}'
                     """
                 } else {
@@ -96,7 +96,7 @@ pipeline {
                     sh """
                         curl -X POST -H "Authorization: token ${GITHUB_AUTH}" \
                         -H "Accept: application/vnd.github.v3+json" \
-                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${GIT_COMMIT} \
+                        https://api.github.com/repos/Akun2-DH/devsecops-demo-app/statuses/${env.GIT_COMMIT} \
                         -d '{"state": "failure", "target_url": "${BUILD_URL}", "description": "Fallo de seguridad detectado en el pipeline.", "context": "Pipeline DevSecOps (Jenkins)"}'
                     """
                 } else {
