@@ -2,7 +2,6 @@ pipeline {
     agent any
     
     triggers {
-        // Ejecución programada automáticamente todos los días
         cron('0 8 * * *\n10 15 * * *')
     }
     
@@ -10,21 +9,20 @@ pipeline {
         string(name: 'PROJECT_KEY', defaultValue: 'demo-app-devsecops', description: 'ID del proyecto en SonarQube')
         string(name: 'PROJECT_NAME', defaultValue: 'Demo App Security', description: 'Nombre del proyecto')
         
-        // Caso Local o Caso Git
         choice(name: 'ORIGEN_CODIGO', 
                choices: ['https://github.com/Akun2-DH/devsecops-demo-app.git', 'LOCAL'], 
                description: 'Selecciona si usas el codigo local de Ubuntu o el repositorio de GitHub')
         
-        // Desplegable para elegir a qué IP/Contenedor atacar 
         choice(name: 'TARGET_URL', 
                choices: ['http://devsecops-demo-app:3000', 'http://10.2.15.220:8080'], 
                description: 'Selecciona el objetivo DAST: El contenedor interno o la IP de la maquina externa')
     }
 
     environment {
-        // Cargamos ambas credenciales de forma segura desde el almacén de Jenkins
-        ZAP_API_KEY = credentials('ZAP_API_KEY')
-        GITHUB_AUTH = credentials('GITHUB_TOKEN_API')
+        // CORREGIDO: Mapeamos tus 3 credenciales reales exactas de tu captura de pantalla
+        ZAP_API_KEY      = credentials('ZAP_API_KEY')
+        GITHUB_AUTH      = credentials('GITHUB_TOKEN_API')
+        SONAR_TOKEN_ENV  = credentials('SONAR_AUTH_TOKEN') 
     }
 
     stages {
@@ -43,16 +41,16 @@ pipeline {
 
         stage('SAST - SonarQube') {
             steps {
-                withSonarQubeEnv('SonarQube-DevSecOps') {
-                    sh """
-                        sonar-scanner \
-                        -Dsonar.projectKey=${params.PROJECT_KEY} \
-                        -Dsonar.projectName="${params.PROJECT_NAME}" \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=\$SONAR_HOST_URL \
-                        -Dsonar.login=\$SONAR_AUTH_TOKEN
-                    """
-                }
+                // Quitamos el wrapper problemático y le pasamos tu token real directamente al scanner
+                echo "Iniciando análisis estático con el token inyectado..."
+                sh """
+                    sonar-scanner \
+                    -Dsonar.projectKey=${params.PROJECT_KEY} \
+                    -Dsonar.projectName="${params.PROJECT_NAME}" \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://sonarqube:9000 \
+                    -Dsonar.login=${SONAR_TOKEN_ENV}
+                """
             }
         }
 
@@ -65,7 +63,6 @@ pipeline {
 
         stage('DAST - OWASP ZAP') {
             options {
-                // EVITA CUELGUES: Si tarda más de 5 minutos, Jenkins aborta la etapa de forma segura
                 timeout(time: 5, unit: 'MINUTES')
             }
             steps {
@@ -85,7 +82,6 @@ pipeline {
                     echo '¡Pipeline exitoso! Notificando estatus VERDE a GitHub mediante API...'
                     def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                     
-                    // CORREGIDO: "state": "success" para que pinte el check verde en GitHub
                     sh """
                         curl -X POST -H "Authorization: token ${GITHUB_AUTH}" \
                         -H "Accept: application/vnd.github.v3+json" \
